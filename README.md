@@ -21,6 +21,8 @@
 
 ### 사용 방법
 
+![image](https://github.com/user-attachments/assets/3bdfaa96-4403-4c60-9d81-493ac92acef0)
+
 ####  1. URL 및 파라미터 설정
 
 - **요청 URL** : API 엔드포인트 URL을 입력
