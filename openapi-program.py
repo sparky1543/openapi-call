@@ -6,6 +6,7 @@ import requests
 import csv
 import json
 import xml.etree.ElementTree as ET
+import urllib.parse
 
 class OpenAPIClient:
     """
@@ -46,14 +47,29 @@ class OpenAPIClient:
         self.url_frame = tk.Frame(self.main_frame)
         self.url_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
         self.url_frame.columnconfigure(1, weight=1)
-        
-        ttk.Label(self.url_frame, text="요청 URL : ", font=self.font).grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        ttk.Label(self.url_frame, text="요청 URL", font=self.font).grid(row=0, column=0, sticky="w", padx=5, pady=5)
         self.url_entry = tk.Entry(self.url_frame, width=50, font=self.font, bd=1, highlightthickness=0)
         self.url_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
+
+        # 요청변수 설정 체크박스 및 레이블 추가
+        self.param_setting_frame = tk.Frame(self.url_frame)
+        self.param_setting_frame.grid(row=0, column=2, sticky="e", padx=5, pady=5)
+
+        self.param_setting_var = tk.BooleanVar()
+        self.param_setting_label = tk.Label(self.param_setting_frame, text="요청변수 설정", font=self.font)
+        self.param_setting_label.pack(side=tk.LEFT, padx=(0, 2))
+
+        self.param_setting_checkbox = tk.Checkbutton(
+            self.param_setting_frame, 
+            variable=self.param_setting_var,
+            command=self.parse_url_parameters
+        )
+        self.param_setting_checkbox.pack(side=tk.LEFT)
+
         # URL 안내 문구 추가
-        self.url_guide = tk.Label(self.url_frame, text="※ 오픈API 미리보기의 전체 URL을 바로 넣어서 조회 가능 (일부 환경에서는 HTTP 프로토콜만 제공)", 
-                                 font=self.small_font, fg="blue", anchor="w")
+        self.url_guide = tk.Label(self.url_frame, text="※ 오픈API 미리보기의 전체 URL을 넣어서 조회 가능, 일반 인증키(Encoding) 값을 넣어주세요", 
+                                font=self.small_font, fg="blue", anchor="w")
         self.url_guide.grid(row=1, column=1, sticky="w", padx=5)
         
         # 파라미터 섹션 구성
@@ -61,7 +77,7 @@ class OpenAPIClient:
         self.param_container_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
         self.param_container_frame.columnconfigure(0, weight=1)
         
-        # 필수 파라미터 입력 영역 (고정) - 한 줄에 배치
+        # 필수 파라미터 입력 영역
         self.fixed_param_frame = tk.Frame(self.param_container_frame)
         self.fixed_param_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         self.fixed_param_frame.columnconfigure(0, weight=1)  # serviceKey 그룹
@@ -72,25 +88,43 @@ class OpenAPIClient:
         self.service_key_frame = tk.Frame(self.fixed_param_frame)
         self.service_key_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         self.service_key_frame.columnconfigure(1, weight=1)
-        
-        ttk.Label(self.service_key_frame, text="serviceKey", font=self.font).grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        # 라벨을 담을 프레임 생성
+        service_key_label_frame = tk.Frame(self.service_key_frame)
+        service_key_label_frame.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        ttk.Label(service_key_label_frame, text="서비스키", font=self.font).pack(anchor="w")
+        ttk.Label(service_key_label_frame, text="(serviceKey)", font=("맑은 고딕", 10)).pack(anchor="w")
+
         self.service_key_entry = tk.Entry(self.service_key_frame, font=self.font, bd=1, highlightthickness=0)
         self.service_key_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
+
         # pageNo 입력 영역
         self.page_no_frame = tk.Frame(self.fixed_param_frame)
         self.page_no_frame.grid(row=0, column=1, sticky="e", padx=5, pady=5)
-        
-        ttk.Label(self.page_no_frame, text="pageNo", font=self.font).grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        self.page_no_entry = tk.Entry(self.page_no_frame, font=self.font, bd=1, highlightthickness=0, width=14)
+
+        # 라벨을 담을 프레임 생성
+        page_no_label_frame = tk.Frame(self.page_no_frame)
+        page_no_label_frame.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        ttk.Label(page_no_label_frame, text="페이지 번호", font=self.font).pack(anchor="w")
+        ttk.Label(page_no_label_frame, text="(pageNo)", font=("맑은 고딕", 10)).pack(anchor="w")
+
+        self.page_no_entry = tk.Entry(self.page_no_frame, font=self.font, bd=1, highlightthickness=0, width=12)
         self.page_no_entry.grid(row=0, column=1, sticky="e", padx=5, pady=5)
-        
+
         # numOfRows 입력 영역
         self.num_rows_frame = tk.Frame(self.fixed_param_frame)
         self.num_rows_frame.grid(row=0, column=2, sticky="e", padx=5, pady=5)
-        
-        ttk.Label(self.num_rows_frame, text="numOfRows", font=self.font).grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        self.num_of_rows_entry = tk.Entry(self.num_rows_frame, font=self.font, bd=1, highlightthickness=0, width=14)
+
+        # 라벨을 담을 프레임 생성
+        num_rows_label_frame = tk.Frame(self.num_rows_frame)
+        num_rows_label_frame.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+
+        ttk.Label(num_rows_label_frame, text="페이지별 행 수", font=self.font).pack(anchor="w")
+        ttk.Label(num_rows_label_frame, text="(numOfRows)", font=("맑은 고딕", 10)).pack(anchor="w")
+
+        self.num_of_rows_entry = tk.Entry(self.num_rows_frame, font=self.font, bd=1, highlightthickness=0, width=12)
         self.num_of_rows_entry.grid(row=0, column=1, sticky="e", padx=5, pady=5)
         
         # serviceKey 안내 문구
@@ -104,8 +138,8 @@ class OpenAPIClient:
         self.frame_canvas.grid_rowconfigure(0, weight=1)
         self.frame_canvas.grid_columnconfigure(0, weight=1)
         
-        # 파라미터 캔버스 설정 (스크롤을 위한)
-        param_height = 120
+        # 파라미터 캔버스 설정
+        param_height = 160
         self.param_canvas = tk.Canvas(self.frame_canvas, height=param_height, highlightthickness=0, bd=0)
         self.param_canvas.grid(row=0, column=0, sticky="ew")
         
@@ -295,6 +329,176 @@ class OpenAPIClient:
         self.tree["columns"] = ()
         self.tree["show"] = "headings"
 
+    def encode_service_key(self, service_key):
+        """
+        서비스키를 URL 인코딩하는 함수
+        
+        Args:
+            service_key: 인코딩할 서비스키
+            
+        Returns:
+            str: 인코딩된 서비스키
+        """
+        if not service_key:
+            return ""
+        
+        # URL 인코딩 수행
+        encoded_key = urllib.parse.quote_plus(service_key)
+        return encoded_key
+        
+    def decode_service_key(self, service_key):
+        """
+        서비스키를 URL 디코딩하는 함수
+        
+        Args:
+            service_key: 디코딩할 서비스키
+            
+        Returns:
+            str: 디코딩된 서비스키
+        """
+        if not service_key:
+            return ""
+        
+        try:
+            # URL 디코딩 수행
+            decoded_key = urllib.parse.unquote_plus(service_key)
+            return decoded_key
+        except:
+            # 디코딩 실패 시 원본 반환
+            return service_key
+        
+    def parse_url_parameters(self):
+        """
+        URL에서 파라미터를 파싱하여 UI 요소에 채우는 함수
+        체크박스 상태에 따라 URL에서 파라미터 부분을 분리하거나 합치는 작업 수행
+        """
+        if self.param_setting_var.get():  # 체크박스가 체크되었을 때
+            url = self.url_entry.get().strip()
+            
+            # URL에 파라미터 부분이 없는 경우 (? 문자가 없는 경우)
+            if "?" not in url:
+                # 체크박스를 다시 해제하고 메시지 표시
+                self.param_setting_var.set(False)
+                messagebox.showinfo("안내", "설정할 요청변수가 없습니다.")
+                return
+                
+            # 파라미터가 있는 경우 기존 로직 계속 진행
+            base_url, params_str = url.split("?", 1)
+            
+            # URL 입력창 업데이트
+            self.url_entry.delete(0, tk.END)
+            self.url_entry.insert(0, base_url)
+            
+            # 파라미터 파싱
+            if params_str:
+                param_pairs = params_str.split("&")
+                
+                # 기존 파라미터 행 초기화
+                self.clear_param_entries()
+                
+                # 파라미터 딕셔너리 생성
+                params = {}
+                for pair in param_pairs:
+                    if "=" in pair:
+                        name, value = pair.split("=", 1)
+                        params[name] = value
+                
+                # 고정 파라미터 처리
+                if "serviceKey" in params:
+                    # 서비스키는 디코딩하여 저장
+                    encoded_service_key = params.pop("serviceKey")
+                    decoded_service_key = self.decode_service_key(encoded_service_key)
+                    
+                    self.service_key_entry.delete(0, tk.END)
+                    self.service_key_entry.insert(0, decoded_service_key)
+                
+                if "pageNo" in params:
+                    self.page_no_entry.delete(0, tk.END)
+                    self.page_no_entry.insert(0, params.pop("pageNo"))
+                
+                if "numOfRows" in params:
+                    self.num_of_rows_entry.delete(0, tk.END)
+                    self.num_of_rows_entry.insert(0, params.pop("numOfRows"))
+                
+                # 나머지 파라미터 처리
+                for name, value in params.items():
+                    name_entry, value_entry = self.add_param_row()
+                    name_entry.delete(0, tk.END)
+                    name_entry.insert(0, name)
+                    value_entry.delete(0, tk.END)
+                    value_entry.insert(0, value)
+        else:  # 체크박스가 해제되었을 때
+            # URL 재조합
+            self.combine_url_with_params()
+
+    def clear_param_entries(self):
+        """
+        현재 파라미터 입력 행 초기화
+        """
+        # 기존 파라미터 행 모두 제거
+        for _, _, frame_row in self.param_entries:
+            frame_row.destroy()
+        
+        # 파라미터 저장 리스트 초기화
+        self.param_entries = []
+        
+        # 스크롤 영역 업데이트
+        self.update_scrollregion()
+
+    def combine_url_with_params(self):
+        """
+        URL과 파라미터를 조합하여 URL 입력창 업데이트
+        체크박스 해제 시 요청변수 그룹의 값들을 모두 지움
+        """
+        base_url = self.url_entry.get().strip()
+        
+        # 파라미터 수집
+        params = []
+        
+        # 고정 파라미터 처리
+        service_key = self.service_key_entry.get().strip()
+        if service_key:
+            # 서비스키를 인코딩하여 URL에 추가
+            encoded_service_key = self.encode_service_key(service_key)
+            params.append(f"serviceKey={encoded_service_key}")
+        
+        page_no = self.page_no_entry.get().strip()
+        if page_no:
+            params.append(f"pageNo={page_no}")
+        
+        num_of_rows = self.num_of_rows_entry.get().strip()
+        if num_of_rows:
+            params.append(f"numOfRows={num_of_rows}")
+        
+        # 일반 파라미터 처리
+        for name_entry, value_entry, _ in self.param_entries:
+            name = name_entry.get().strip()
+            value = value_entry.get().strip()
+            if name:  # 이름이 비어있지 않은 경우만 추가
+                params.append(f"{name}={value}")
+        
+        # URL 재조합
+        if params:
+            full_url = f"{base_url}?{'&'.join(params)}"
+        else:
+            full_url = base_url
+        
+        # URL 입력창 업데이트
+        self.url_entry.delete(0, tk.END)
+        self.url_entry.insert(0, full_url)
+        
+        # 체크박스가 해제되었을 때 요청변수 그룹의 값 모두 지우기
+        self.service_key_entry.delete(0, tk.END)
+        self.page_no_entry.delete(0, tk.END)
+        self.num_of_rows_entry.delete(0, tk.END)
+        
+        # 기존 일반 파라미터 행 초기화
+        self.clear_param_entries()
+        
+        # 기본 파라미터 행 3개 추가
+        for i in range(3):
+            self.add_param_row()
+    
     def add_param_row(self):
         """
         파라미터 입력 행 추가
@@ -437,38 +641,38 @@ class OpenAPIClient:
             self.set_status("오류", "URL이 필요합니다")
             return
         
-        # 파라미터 수집
-        params = {}
-        
-        # 고정 파라미터 처리
-        service_key = self.service_key_entry.get().strip()
-        page_no = self.page_no_entry.get().strip()
-        num_of_rows = self.num_of_rows_entry.get().strip()
-        
-        if service_key:
-            params["serviceKey"] = service_key
-        if page_no:
-            params["pageNo"] = page_no
-        if num_of_rows:
-            params["numOfRows"] = num_of_rows
-        
-        # 일반 파라미터 처리
-        for name_entry, value_entry, _ in self.param_entries:
-            name = name_entry.get().strip()
-            value = value_entry.get().strip()
-            if name:  # 이름이 비어있지 않은 경우만 추가
-                params[name] = value
-        
         try:
             self.set_status("진행 중", "요청 전송 중...")
             self.root.update()
             
-            # URL에 이미 파라미터가 포함된 경우 처리
-            if '?' in url and params:
-                # 이미 파라미터가 URL에 포함된 경우, 직접 URL로만 요청
+            # URL 처리 로직 수정
+            if '?' in url:
+                # URL에 파라미터가 이미 포함된 경우, URL 그대로 사용
                 response = requests.get(url, verify=True)
             else:
-                # 일반적인 경우, params 인자 사용
+                # URL에 파라미터가 없는 경우, 체크박스 상태와 관계없이 항상 요청변수 합쳐서 요청
+                params = {}
+                
+                # 고정 파라미터 처리
+                service_key = self.service_key_entry.get().strip()
+                page_no = self.page_no_entry.get().strip()
+                num_of_rows = self.num_of_rows_entry.get().strip()
+                
+                if service_key:
+                    # 요청변수로 보낼 때는 디코딩된 형태 그대로 사용
+                    params["serviceKey"] = service_key
+                if page_no:
+                    params["pageNo"] = page_no
+                if num_of_rows:
+                    params["numOfRows"] = num_of_rows
+                
+                # 일반 파라미터 처리
+                for name_entry, value_entry, _ in self.param_entries:
+                    name = name_entry.get().strip()
+                    value = value_entry.get().strip()
+                    if name:  # 이름이 비어있지 않은 경우만 추가
+                        params[name] = value
+                
                 response = requests.get(url, params=params, verify=True)
             
             response.raise_for_status()
