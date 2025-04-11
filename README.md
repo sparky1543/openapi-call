@@ -20,10 +20,11 @@
 
 
 ### 사용 방법
+OpenAPI CALL 매뉴얼 파일에서 더 자세한 사용 방법을 확인하실 수 있습니다.
 
-![image](https://github.com/user-attachments/assets/b286dcb3-958e-4796-9657-a1f9baf4d2c6)
-![image](https://github.com/user-attachments/assets/967ba155-a4af-425a-9f90-98e290b3240d)
-![image](https://github.com/user-attachments/assets/104cce43-1c23-4289-bb29-a3d3b6331c38)
+![image](https://github.com/user-attachments/assets/5bdb5b66-e816-4544-bb35-1e8feb5b6543)
+![image](https://github.com/user-attachments/assets/11745f22-c60e-4df1-a36f-8c51315a0a57)
+![image](https://github.com/user-attachments/assets/22cf3d82-8529-441a-b006-0b19c6ceff2d)
 
 #### 1. URL 및 파라미터 설정
 
