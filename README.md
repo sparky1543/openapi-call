@@ -1,7 +1,7 @@
 ## OpenAPI 요청 및 데이터 추출 도구
 
-오픈 API 요청 및 결과 시각화 GUI 프로그램입니다.  
-사용자가 쉽게 API 엔드포인트에 요청하고 결과를 테이블 형식으로 확인하며 CSV로 저장할 수 있습니다.
+OpenAPI CALL은 공공데이터포털의 OpenAPI를 누구나 쉽게 조회·저장할 수 있도록 만든 GUI 프로그램입니다.  
+복잡한 요청 과정이 어려운 사용자를 위해 테이블 형태로 결과를 쉽게 받을 수 있도록 개발되었습니다.
 
 ### 주요 기능
 
@@ -20,7 +20,7 @@
 
 
 ### 사용 방법
-OpenAPI CALL 매뉴얼 파일에서 더 자세한 사용 방법을 확인하실 수 있습니다.
+[OpenAPI CALL 매뉴얼](https://github.com/sparky1543/openapi-call/blob/main/OpenAPI%20CALL%20%EB%A7%A4%EB%89%B4%EC%96%BC.pdf) 파일에서 더 자세한 사용 방법을 확인하실 수 있습니다.
 
 ![스크린샷1](https://github.com/user-attachments/assets/e74bdf81-97f1-4ed9-a488-6df4cd318265)
 ![스크린샷2](https://github.com/user-attachments/assets/1bdaa1aa-7cf7-4c2e-a2f4-fa12b7b53162)
