@@ -20,12 +20,13 @@ OpenAPI CALL은 공공데이터포털의 OpenAPI를 누구나 쉽게 조회·저
 
 
 ### 사용 방법
-[OpenAPI CALL 매뉴얼](https://github.com/sparky1543/openapi-call/blob/main/OpenAPI%20CALL%20%EB%A7%A4%EB%89%B4%EC%96%BC.pdf) 파일에서 더 자세한 사용 방법을 확인하실 수 있습니다.
+[Releases](https://github.com/sparky1543/openapi-call/releases)에서 실행 파일 다운로드 후 사용
 
 ![스크린샷1](https://github.com/user-attachments/assets/e74bdf81-97f1-4ed9-a488-6df4cd318265)
 ![스크린샷2](https://github.com/user-attachments/assets/1bdaa1aa-7cf7-4c2e-a2f4-fa12b7b53162)
 ![스크린샷3](https://github.com/user-attachments/assets/86096426-4527-436b-852e-d058de10720e)
 
+[OpenAPI CALL 매뉴얼](https://github.com/sparky1543/openapi-call/blob/main/OpenAPI%20CALL%20%EB%A7%A4%EB%89%B4%EC%96%BC.pdf) 파일에서 더 자세한 사용 방법을 확인하실 수 있습니다.
 
 #### 1. URL 및 파라미터 설정
 
