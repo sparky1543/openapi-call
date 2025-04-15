@@ -997,7 +997,7 @@ class OpenAPIClient:
                     row_data = {header: row.get(header, "") for header in self.current_data["headers"]}
                     writer.writerow(row_data)
             
-            self.set_status("완료", f"데이터가 {file_path}에 저장되었습니다")
+            self.set_status("완료", "저장 완료")
             messagebox.showinfo("성공", f"데이터가 {file_path}에 저장되었습니다")
         except Exception as e:
             self.set_status("오류", f"파일 저장 오류: {str(e)}")
