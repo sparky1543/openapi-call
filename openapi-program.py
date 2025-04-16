@@ -636,6 +636,9 @@ class OpenAPIClient:
         # 이전 데이터 지우기
         self.clear_treeview()
         
+        # 새 요청 시작 시 저장용 데이터 초기화
+        self.current_data = {"headers": [], "rows": []}
+        
         url = self.url_entry.get().strip()
         if not url:
             self.set_status("오류", "URL이 필요합니다")
@@ -645,7 +648,7 @@ class OpenAPIClient:
             self.set_status("진행 중", "요청 전송 중...")
             self.root.update()
             
-            # URL 처리 로직 수정
+            # URL 처리 로직
             if '?' in url:
                 # URL에 파라미터가 이미 포함된 경우, URL 그대로 사용
                 response = requests.get(url, verify=True)
@@ -722,6 +725,29 @@ class OpenAPIClient:
                     # 상태 설정 및 메시지 박스 표시
                     self.set_status("오류", error_detail)
                     return
+            
+            # resultCode와 resultMsg 확인
+            result_code = None
+            result_msg = None
+            
+            # 최상위 header 검색
+            if isinstance(json_data, dict) and "header" in json_data:
+                header = json_data.get("header", {})
+                result_code = header.get("resultCode")
+                result_msg = header.get("resultMsg")
+            # response > header 구조 검색
+            elif isinstance(json_data, dict) and "response" in json_data:
+                response = json_data.get("response", {})
+                if isinstance(response, dict) and "header" in response:
+                    header = response.get("header", {})
+                    result_code = header.get("resultCode")
+                    result_msg = header.get("resultMsg")
+            
+            # resultCode가 "00"이 아닌 경우 오류 처리
+            if result_code is not None and result_code != "00":
+                error_detail = f"결과 코드: {result_code}\n결과 메시지: {result_msg}"
+                self.set_status("오류", error_detail)
+                return
             
             # 데이터 항목 찾기
             data_rows = []
@@ -814,17 +840,123 @@ class OpenAPIClient:
                         return_reason_code = reason_code_elem.text or ""
                     
                     # 오류 메시지 구성
-                    error_detail = f"오류 메세지: {return_auth_msg}\n오류 코드: {return_reason_code}"
+                    error_detail = f"오류 코드: {return_reason_code}\n오류 메세지: {return_auth_msg}"
                     
                     # 상태 설정 및 메시지 박스 표시
                     self.set_status("오류", error_detail)
                     return
             
+            # 응답을 딕셔너리로 변환
+            data_dict = {}
+            
+            # XML 탐색
+            for elem in root.iter():
+                if elem.text and elem.text.strip() and elem.tag != root.tag:
+                    # 부모 경로 포함하여 키 생성
+                    parents = []
+                    parent = elem
+                    while parent is not None and parent != root:
+                        if hasattr(parent, 'getparent'):
+                            parent = parent.getparent()
+                            if parent is not None and parent != root:
+                                parents.insert(0, parent.tag)
+                        else:
+                            # 부모를 찾을 수 없는 경우 기본 방식으로 처리
+                            for potential_parent in root.iter():
+                                if elem in list(potential_parent):
+                                    parents.insert(0, potential_parent.tag)
+                                    break
+                            break
+                    
+                    # 경로 구성
+                    if parents:
+                        key = '.'.join(parents + [elem.tag])
+                    else:
+                        key = elem.tag
+                    
+                    data_dict[key] = elem.text.strip()
+            
+            # 두 번째 접근: 일반적인 패턴 검색
+            for tag in ['resultCode', 'resultcode', 'RESULT_CODE']:
+                # 직접 찾기
+                elem = root.find(f".//{tag}")
+                if elem is not None and elem.text:
+                    data_dict[tag] = elem.text.strip()
+                
+                # header 내부에서 찾기
+                header_elem = root.find(".//header")
+                if header_elem is not None:
+                    elem = header_elem.find(f"./{tag}")
+                    if elem is not None and elem.text:
+                        data_dict[f"header.{tag}"] = elem.text.strip()
+                
+                # response/header 내부에서 찾기
+                response_elem = root.find(".//response")
+                if response_elem is not None:
+                    header_elem = response_elem.find("./header")
+                    if header_elem is not None:
+                        elem = header_elem.find(f"./{tag}")
+                        if elem is not None and elem.text:
+                            data_dict[f"response.header.{tag}"] = elem.text.strip()
+            
+            # 유사한 방식으로 resultMsg 찾기
+            for tag in ['resultMsg', 'resultmsg', 'RESULT_MSG']:
+                elem = root.find(f".//{tag}")
+                if elem is not None and elem.text:
+                    data_dict[tag] = elem.text.strip()
+                
+                header_elem = root.find(".//header")
+                if header_elem is not None:
+                    elem = header_elem.find(f"./{tag}")
+                    if elem is not None and elem.text:
+                        data_dict[f"header.{tag}"] = elem.text.strip()
+                
+                response_elem = root.find(".//response")
+                if response_elem is not None:
+                    header_elem = response_elem.find("./header")
+                    if header_elem is not None:
+                        elem = header_elem.find(f"./{tag}")
+                        if elem is not None and elem.text:
+                            data_dict[f"response.header.{tag}"] = elem.text.strip()
+            
+            # resultCode 및 resultMsg 검색
+            result_code = None
+            result_msg = None
+            
+            # 딕셔너리에서 resultCode 검색
+            for key, value in data_dict.items():
+                # 대소문자 무관하게 검색
+                if 'resultcode' in key.lower():
+                    result_code = value
+                    # 동일한 패턴에서 resultMsg 찾기
+                    prefix = key.rsplit('resultCode', 1)[0] if 'resultCode' in key else key.rsplit('resultcode', 1)[0]
+                    for msg_key in [prefix + 'resultMsg', prefix + 'resultmsg']:
+                        if msg_key in data_dict:
+                            result_msg = data_dict[msg_key]
+                            break
+                    break
+            
+            # resultCode가 없으면 직접 XML 파싱 방식으로 다시 시도
+            if result_code is None:
+                result_code_elem = root.find(".//resultCode")
+                if result_code_elem is not None and result_code_elem.text:
+                    result_code = result_code_elem.text.strip()
+                    
+                    result_msg_elem = root.find(".//resultMsg")
+                    if result_msg_elem is not None and result_msg_elem.text:
+                        result_msg = result_msg_elem.text.strip()
+            
+            # resultCode가 "00"이 아닌 경우 오류 처리
+            if result_code is not None and result_code != "00":
+                error_detail = f"결과 코드: {result_code}\n결과 메시지: {result_msg or '알 수 없는 오류'}"
+                self.set_status("오류", error_detail)
+                return
+            
             # 데이터 항목 찾기
             data_rows = []
             headers = []
             
-            # 일반적인 API 응답 구조 분석 (items/item 형태)
+            # 일반적인 API 응답 구조 분석
             items = root.find(".//items")
             if items is not None:
                 item_elements = items.findall("item")
@@ -976,7 +1108,7 @@ class OpenAPIClient:
         """
         # 저장할 데이터가 있는지 확인
         if not self.current_data["headers"] or not self.current_data["rows"]:
-            messagebox.showinfo("안내", "저장할 데이터가 없습니다")
+            messagebox.showinfo("안내", "저장할 데이터가 없습니다.")
             return
         
         # 파일 위치 선택
